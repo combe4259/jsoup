@@ -163,12 +163,25 @@ class HttpClientExecutor extends RequestExecutor {
         @Override
         public List<Proxy> select(URI uri) {
             Proxy proxy = perRequestProxy.get();
-            return proxy != null ? Collections.singletonList(proxy) : NoProxy;
+            if (proxy != null) {
+                return Collections.singletonList(proxy);
+            }
+            ProxySelector defaultSelector = ProxySelector.getDefault();
+            if (defaultSelector != null) {
+                return defaultSelector.select(uri);
+            }
+            return NoProxy;
         }
 
         @Override
         public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
-            // no-op
+            if (perRequestProxy.get() != null) {
+                return;  // no-op
+            }
+            ProxySelector defaultSelector = ProxySelector.getDefault();
+            if (defaultSelector != null) {
+                defaultSelector.connectFailed(uri, sa, ioe);
+            }
         }
     }
 }
